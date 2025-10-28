@@ -1,93 +1,46 @@
-require('dotenv').config();
-const { Telegraf } = require('telegraf');
-const axios = require('axios');
+import fetch from "node-fetch";
+import { Telegraf, Markup } from "telegraf";
 
-const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
+// 🔹 Вставь токен своего Telegram-бота
+const BOT_TOKEN = "8234991987:AAHTAazRIpvYw0huIdkVrjXlk42OOI0ur0Y";
+const bot = new Telegraf(BOT_TOKEN);
 
-const streamer = process.env.TWITCH_CHANNEL
-const twToken = process.env.TWITCH_TOKEN
-const twClient = process.env.TWITCH_CLIENT_ID
-const twSecret = process.env.TWITCH_CLIENT_SECRET
-const link = `https://www.twitch.com/${streamer}`;
-
-const buttonSubscribe = { text: 'Подписаться на уведомления' };
-const buttonUnsubscribe = { text: 'Отписаться от уведомлений' };
-const buttonInfo = { text: 'Информация о подписке' };
-
-const keyboard = {
-    reply_markup: {
-        keyboard: [[buttonSubscribe, buttonUnsubscribe], [buttonInfo]],
-        resize_keyboard: true,
-        one_time_keyboard: true,
-    },
-};
-
-// Обработчик команды /start
-bot.start((ctx) => {
-    ctx.reply(`Привет! Это бот для уведомлений о стримах на канале [${streamer}](${link}).`, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard.reply_markup,
-    });
-});
-
-bot.hears(buttonSubscribe.text, (ctx) => {
-        ctx.reply('buttonSubscribe', { reply_markup: keyboard.reply_markup });
-});
-
-bot.hears(buttonUnsubscribe.text, (ctx) => {
-    ctx.reply('buttonUnsubscribe', { reply_markup: keyboard.reply_markup });
-});
-
-bot.hears(buttonInfo.text, (ctx) => {
-    checkStreamStatus(ctx)
-    ctx.reply('buttonInfo', { reply_markup: keyboard.reply_markup });
-});
-
-bot.on('text', (ctx) => {
-    ctx.reply("Извините, я вас не понял, используйте кнопки.", { reply_markup: keyboard.reply_markup });
-});
-
-async function checkStreamStatus(ctx) {
-    const opts = {
-        client_id: twClient,
-        client_secret: twSecret,
-        grant_type: 'client_credentials',
-        scopes: '',
-    }
-    const params = qs.stringify(opts)
-    ctx.reply('checkStreamStatus')
+// 🔍 Функция проверки стрима
+async function isStreamLive() {
     try {
-        ctx.reply('try1') 
-        const { data } = await axios.post(
-            `https://id.twitch.tv/oauth2/token?${params}`
-        )
-    } catch (error) {
-        ctx.reply('error1')
-    }
-
-    try {
-        const response = await axios.get(`https://api.twitch.tv/helix/streams?user_login=${streamer}`, {
-            headers: {
-                'Client-ID': twClient,
-                'Authorization': twToken,
-            },
-        });
-        ctx.reply('try')
-        if (response.data.data.length > 0) {
-            ctx.reply('Стрим идет!')
-        } else {
-            ctx.reply('Стрима нет!')
-        }
-    } catch (error) {
-        ctx.reply('error')
-        console.error("Error checking stream status:", error);
+        const res = await fetch("https://www.twitch.tv/dyrka9");
+        const html = await res.text();
+        return html.includes('"isLiveBroadcast":true');
+    } catch (err) {
+        console.error("Ошибка при проверке:", err.message);
+        return null;
     }
 }
 
-// setInterval(checkStreamStatus, 60000);
+// 🟢 Команда /start
+bot.start((ctx) => {
+    ctx.reply(
+        "Привет! 👋\nХочешь узнать, идёт ли сейчас стрим у dyrka9?",
+        Markup.inlineKeyboard([
+            [Markup.button.callback("🎥 Проверить стрим", "check_stream")],
+        ])
+    );
+});
 
+// 🎯 Обработка нажатия кнопки
+bot.action("check_stream", async (ctx) => {
+    await ctx.answerCbQuery(); // убираем “loading” у кнопки
+    const live = await isStreamLive();
+
+    if (live === null) {
+        await ctx.reply("⚠️ Не удалось проверить статус стрима. Попробуй позже.");
+    } else if (live) {
+        await ctx.reply("✅ Сейчас идёт стрим! https://twitch.tv/dyrka9");
+    } else {
+        await ctx.reply("❌ Стрим сейчас не идёт.");
+    }
+});
+
+// 🚀 Запуск бота
 bot.launch();
-
-// Обработка завершения работы
-process.once('SIGINT', () => bot.launch());
-process.once('SIGTERM', () => bot.launch());
+console.log("Бот запущен и ждёт команду /start");
