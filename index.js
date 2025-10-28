@@ -7,6 +7,8 @@ const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 // Функция для проверки статуса стрима
 async function checkStreamStatus(ctx) {
     ctx.reply('Checking stream status...');
+    ctx.reply(process.env.TWITCH_CLIENT_ID);
+    ctx.reply(process.env.TWITCH_CLIENT_SECRET);
     const clientId = process.env.TWITCH_CLIENT_ID;
     const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
@@ -21,6 +23,8 @@ async function checkStreamStatus(ctx) {
 
     const { access_token } = authResponse.data;
 
+    ctx.reply(access_token);
+
     // Проверяем статус стрима
     const streamResponse = await axios.get('https://api.twitch.tv/helix/streams', {
         headers: {
@@ -30,7 +34,7 @@ async function checkStreamStatus(ctx) {
         params: {
             user_login: 'dyrka9'
         }
-    });
+    }); 
 
     return streamResponse.data.data.length > 0;
 }
