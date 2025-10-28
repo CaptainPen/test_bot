@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Initialize the Telegraf bot
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 
 // Twitch API credentials
 const twitchClientId = 'gp762nuuoqcoxypju8c569th9wz7q5';
@@ -63,7 +63,7 @@ async function isTwitchOnline() {
 
 // Function to send messages to Telegram
 async function telegramBotSendText(message) {
-    const botToken = process.env.BOT_TOKEN; // Add your bot token to the environment
+    const botToken = process.env.TELEGRAM_TOKEN; // Add your bot token to the environment
     const chatId = '-1003193304359'; // Chat ID
 
     const sendTextUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
