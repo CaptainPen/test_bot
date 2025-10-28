@@ -7,6 +7,7 @@ const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 const streamer = process.env.TWITCH_CHANNEL
 const twToken = process.env.TWITCH_TOKEN
 const twClient = process.env.TWITCH_CLIENT_ID
+const twSecret = process.env.TWITCH_CLIENT_SECRET
 const link = `https://www.twitch.com/${streamer}`;
 
 const buttonSubscribe = { text: 'Подписаться на уведомления' };
@@ -47,7 +48,23 @@ bot.on('text', (ctx) => {
 });
 
 async function checkStreamStatus(ctx) {
+    const opts = {
+        client_id: twClient,
+        client_secret: twSecret,
+        grant_type: 'client_credentials',
+        scopes: '',
+    }
+    const params = qs.stringify(opts)
     ctx.reply('checkStreamStatus')
+    try {
+        ctx.reply('try1') 
+        const { data } = await axios.post(
+            `https://id.twitch.tv/oauth2/token?${params}`
+        )
+    } catch (error) {
+        ctx.reply('error1')
+    }
+
     try {
         const response = await axios.get(`https://api.twitch.tv/helix/streams?user_login=${streamer}`, {
             headers: {
