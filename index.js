@@ -47,6 +47,7 @@ bot.on('text', (ctx) => {
 });
 
 async function checkStreamStatus(ctx) {
+    ctx.reply('checkStreamStatus')
     try {
         const response = await axios.get(`https://api.twitch.tv/helix/streams?user_login=${streamer}`, {
             headers: {
@@ -54,12 +55,14 @@ async function checkStreamStatus(ctx) {
                 'Authorization': twToken,
             },
         });
+        ctx.reply('try')
         if (response.data.data.length > 0) {
             ctx.reply('Стрим идет!')
         } else {
             ctx.reply('Стрима нет!')
-        } 
+        }
     } catch (error) {
+        ctx.reply('error')
         console.error("Error checking stream status:", error);
     }
 }
