@@ -5,6 +5,8 @@ const axios = require('axios');
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 
 const streamer = process.env.TWITCH_CHANNEL
+const twToken = process.env.TWITCH_TOKEN
+const twClient = process.env.TWITCH_CLIENT_ID
 const link = `https://www.twitch.com/${streamer}`;
 
 const buttonSubscribe = { text: 'Подписаться на уведомления' };
@@ -36,12 +38,33 @@ bot.hears(buttonUnsubscribe.text, (ctx) => {
 });
 
 bot.hears(buttonInfo.text, (ctx) => {
+    checkStreamStatus(ctx)
     ctx.reply('buttonInfo', { reply_markup: keyboard.reply_markup });
 });
- 
+
 bot.on('text', (ctx) => {
     ctx.reply("Извините, я вас не понял, используйте кнопки.", { reply_markup: keyboard.reply_markup });
 });
+
+async function checkStreamStatus(ctx) {
+    try {
+        const response = await axios.get(`https://api.twitch.tv/helix/streams?user_login=${streamer}`, {
+            headers: {
+                'Client-ID': twClient,
+                'Authorization': twToken,
+            },
+        });
+        if (response.data.data.length > 0) {
+            ctx.reply('Стрим идет!')
+        } else {
+            ctx.reply('Стрима нет!')
+        } 
+    } catch (error) {
+        console.error("Error checking stream status:", error);
+    }
+}
+
+// setInterval(checkStreamStatus, 60000);
 
 bot.launch();
 
