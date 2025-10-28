@@ -1,46 +1,90 @@
-import fetch from "node-fetch";
-import { Telegraf, Markup } from "telegraf";
+const { Telegraf } = require('telegraf');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
-// 🔹 Вставь токен своего Telegram-бота
-const BOT_TOKEN = "8234991987:AAHTAazRIpvYw0huIdkVrjXlk42OOI0ur0Y";
-const bot = new Telegraf(BOT_TOKEN);
+// Initialize the Telegraf bot
+const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// 🔍 Функция проверки стрима
-// async function isStreamLive() {
-//     try {
-//         const res = await fetch("https://www.twitch.tv/dyrka9");
-//         const html = await res.text();
-//         return html.includes('"isLiveBroadcast":true');
-//     } catch (err) {
-//         console.error("Ошибка при проверке:", err.message);
-//         return null;
-//     }
-// } 
+// Twitch API credentials
+const twitchClientId = 'gp762nuuoqcoxypju8c569th9wz7q5';
+const twitchSecret = '69cb9r990pkkiqse2po5dy40ttw2zk';
+const userStream = 'dyrka9';
 
-// 🟢 Команда /start
+// File to store the stream status
+const statusFilePath = path.join(__dirname, 'StreamTwitch_01Bot.txt');
+
+// Function to check if the Twitch stream is online
+async function isTwitchOnline() {
+    try {
+        // Get OAuth Token
+        const tokenResponse = await axios.post(`https://id.twitch.tv/oauth2/token`, null, {
+            params: {
+                client_id: twitchClientId,
+                client_secret: twitchSecret,
+                grant_type: 'client_credentials'
+            }
+        });
+        const oauthToken = tokenResponse.data.access_token;
+
+        // Check stream status
+        const streamResponse = await axios.get(`https://api.twitch.tv/helix/streams`, {
+            headers: {
+                'Authorization': `Bearer ${oauthToken}`,
+                'Client-Id': twitchClientId
+            },
+            params: {
+                user_login: userStream
+            }
+        });
+
+        // Read the last known status
+        let streamStatus = 'FALSE';
+        if (fs.existsSync(statusFilePath)) {
+            streamStatus = fs.readFileSync(statusFilePath, 'utf-8');
+        } else {
+            fs.writeFileSync(statusFilePath, "FALSE");
+        }
+
+        // Determine if the stream is online/offline and send notifications
+        if (streamResponse.data.data.length > 0 && streamStatus === 'FALSE') {
+            const message = `Stream of: [${userStream}](https://www.twitch.tv/${userStream}) is online.`;
+            await telegramBotSendText(message);
+            fs.writeFileSync(statusFilePath, "TRUE");
+        } else if (streamResponse.data.data.length === 0 && streamStatus === 'TRUE') {
+            const message = `${userStream.toUpperCase()} is offline`;
+            await telegramBotSendText(message);
+            fs.writeFileSync(statusFilePath, "FALSE");
+        }
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+// Function to send messages to Telegram
+async function telegramBotSendText(message) {
+    const botToken = process.env.BOT_TOKEN; // Add your bot token to the environment
+    const chatId = '-1003193304359'; // Chat ID
+
+    const sendTextUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    await axios.post(sendTextUrl, {
+        chat_id: chatId,
+        parse_mode: 'Markdown',
+        text: message
+    });
+}
+
+// Function to repeatedly check stream status every 30 seconds
+function startMonitoring() {
+    isTwitchOnline();
+    setInterval(isTwitchOnline, 30000); // Check every 30 seconds
+}
+
+// Start monitoring when the bot is launched
 bot.start((ctx) => {
-    ctx.reply(
-        "Привет! 👋\nХочешь узнать, идёт ли сейчас стрим у dyrka9?",
-        Markup.inlineKeyboard([
-            [Markup.button.callback("🎥 Проверить стрим", "check_stream")],
-        ])
-    );
+    ctx.reply('Twitch Stream Monitor is running...');
+    startMonitoring();
 });
 
-// 🎯 Обработка нажатия кнопки
-// bot.action("check_stream", async (ctx) => {
-//     await ctx.answerCbQuery(); // убираем “loading” у кнопки
-//     const live = await isStreamLive();
-//
-//     if (live === null) {
-//         await ctx.reply("⚠️ Не удалось проверить статус стрима. Попробуй позже.");
-//     } else if (live) {
-//         await ctx.reply("✅ Сейчас идёт стрим! https://twitch.tv/dyrka9");
-//     } else {
-//         await ctx.reply("❌ Стрим сейчас не идёт.");
-//     }
-// });
-
-// 🚀 Запуск бота
+// Launch the bot
 bot.launch();
-console.log("Бот запущен и ждёт команду /start");
