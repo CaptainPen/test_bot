@@ -5,8 +5,8 @@ const axios = require('axios');
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 
 // Функция для проверки статуса стрима
-async function checkStreamStatus() {
-    console.log('Checking stream status...');
+async function checkStreamStatus(ctx) {
+    ctx.reply('Checking stream status...');
     const clientId = process.env.TWITCH_CLIENT_ID;
     const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
@@ -51,7 +51,7 @@ bot.on('callback_query', async (ctx) => {
     ctx.reply('callback_query');
     if (ctx.callbackQuery.data === 'check_stream') {
         ctx.reply('callback_query.data === check_stream');
-        const isStreaming = await checkStreamStatus();
+        const isStreaming = await checkStreamStatus(ctx);
         if (isStreaming) {
             ctx.reply('Стрим у стримера dyrka9 идет!');
         } else {
