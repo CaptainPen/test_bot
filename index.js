@@ -1,11 +1,11 @@
 const { Telegraf } = require('telegraf');
 
 // Замените 'YOUR_TELEGRAM_BOT_TOKEN' на токен вашего бота
-const bot = new Telegraf('8234991987:AAHTAazRIpvYw0huIdkVrjXlk42OOI0ur0Y');
+const bot = new Telegraf(process.env.BOT_API_KEY);
 
 // Обработчик для текстовых сообщений
 bot.on('text', (ctx) => {
-    ctx.reply(`Вы написали: ${ctx.message.text}`);
+    ctx.reply(`Максим: ${ctx.message.text}`);
 });
 
 console.log("Запускаю бота...");
