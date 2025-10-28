@@ -1,13 +1,15 @@
+require('dotenv').config();
 const { Telegraf } = require('telegraf');
+const axios = require('axios');
 
-// Замените 'YOUR_TELEGRAM_BOT_TOKEN' на токен вашего бота
-const bot = new Telegraf(process.env.BOT_API_KEY);
+const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 
+// Функция для проверки статуса стрима
 async function checkStreamStatus() {
     const clientId = process.env.TWITCH_CLIENT_ID;
     const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
-    // Сначала получим токен для доступа к API Twitch
+    // Получаем токен для доступа к API Twitch
     const authResponse = await axios.post('https://id.twitch.tv/oauth2/token', null, {
         params: {
             client_id: clientId,
@@ -18,13 +20,13 @@ async function checkStreamStatus() {
 
     const { access_token } = authResponse.data;
 
-    // Проверим статус стрима
+    // Проверяем статус стрима
     const streamResponse = await axios.get('https://api.twitch.tv/helix/streams', {
         headers: {
             'Client-ID': clientId,
             'Authorization': `Bearer ${access_token}`
         },
-        params: { 
+        params: {
             user_login: 'dyrka9'
         }
     });
@@ -32,16 +34,32 @@ async function checkStreamStatus() {
     return streamResponse.data.data.length > 0;
 }
 
-bot.start(async (ctx) => {
-    const isStreaming = await checkStreamStatus();
-    if (isStreaming) {
-        ctx.reply('Стрим у стримера dyrka9 идет!');
-    } else {
-        ctx.reply('У стримера dyrka9 стрима нет.');
+// Обработчик команды /start
+bot.start((ctx) => {
+    ctx.reply('Добро пожаловать! Нажмите кнопку ниже, чтобы проверить, идет ли стрим у стримера dyrka9.', {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: 'Проверить стрим', callback_data: 'check_stream' }]
+            ]
+        }
+    });
+});
+
+// Обработчик нажатия кнопки
+bot.on('callback_query', async (ctx) => {
+    if (ctx.callbackQuery.data === 'check_stream') {
+        const isStreaming = await checkStreamStatus();
+        if (isStreaming) {
+            ctx.reply('Стрим у стримера dyrka9 идет!');
+        } else {
+            ctx.reply('У стримера dyrka9 стрима нет.');
+        }
     }
 });
 
+// Запуск бота
 bot.launch();
+
 
 // Обработка завершения работы
 process.once('SIGINT', () => bot.launch());
