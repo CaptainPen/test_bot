@@ -6,6 +6,7 @@ const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 
 // Функция для проверки статуса стрима
 async function checkStreamStatus() {
+    console.log('Checking stream status...');
     const clientId = process.env.TWITCH_CLIENT_ID;
     const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
@@ -47,7 +48,9 @@ bot.start((ctx) => {
 
 // Обработчик нажатия кнопки
 bot.on('callback_query', async (ctx) => {
+    ctx.reply('callback_query');
     if (ctx.callbackQuery.data === 'check_stream') {
+        ctx.reply('callback_query.data === check_stream');
         const isStreaming = await checkStreamStatus();
         if (isStreaming) {
             ctx.reply('Стрим у стримера dyrka9 идет!');
